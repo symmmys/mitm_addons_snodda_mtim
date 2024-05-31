@@ -1,4 +1,4 @@
-"""Brute-force using a request as a template, fuzzing one parameter with a wordlist."""
+"""Brute-force using a request as a template, fuzzing two parameters with two different wordlists - using pitchfork mode."""
 
 import logging
 import subprocess
@@ -33,11 +33,12 @@ def raw_request(f: flow.Flow) -> bytes:
     return assemble.assemble_request(request)
 
 class BruteForce:
-    @command.command("bruteforce")
+    @command.command("doubleforce")
     def bruteforce(
         self,
         flows: Sequence[flow.Flow],
-        wordlist: str
+        wordlist: str,
+        otherlist: str
     ) -> None:
         logging.debug("[bruteforce.py] log level is set to debug or higher.")
         flowdex = 0
@@ -48,8 +49,8 @@ class BruteForce:
                 this_outfile.write(raw_request(f))
                 this_outfile.close()
                 
-                this_ffuf_outfile = f"request_{flowdex}.ffuf.html"
-                arglist = ["ffuf","-request",this_filename,"-w",wordlist,"-o",this_ffuf_outfile,"-of","html"]
+                this_ffuf_outfile = f"request_{flowdex}.ffuf"
+                arglist = ["ffuf","-mode","pitchfork","-request",this_filename,"-w",f"{wordlist}:FUZZ","-w", f"{otherlist}:OTHERFUZZ","-o",this_ffuf_outfile,"-of","all","-noninteractive"]
                 subprocess.run(arglist)
                 flowdex = flowdex + 1
 

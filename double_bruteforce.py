@@ -32,7 +32,7 @@ def raw_request(f: flow.Flow) -> bytes:
         raise exceptions.CommandError("Request content missing.")
     return assemble.assemble_request(request)
 
-class BruteForce:
+class DoubleBrute:
     @command.command("doubleforce")
     def bruteforce(
         self,
@@ -54,4 +54,4 @@ class BruteForce:
                 subprocess.run(arglist)
                 flowdex = flowdex + 1
 
-addons = [BruteForce()]
+addons = [DoubleBrute()]

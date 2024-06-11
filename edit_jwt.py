@@ -37,7 +37,13 @@ def depadded_encode(bytes_in):
     return urlsafe_b64encode(bytes_in).strip(b"=")
 
 class JWTEditor(HeaderEditor):
+
+    def __init__(self,master):
+        super().__init__(master)
+        self.original_jwt_headers = dict()
+
     title = "Edit one (or more) JWT(s) found in the focused request"
+
 
     def get_data(self, flow):
         dummy_data = []
@@ -57,6 +63,8 @@ class JWTEditor(HeaderEditor):
                 dummy_data.append((f"jwt_header_{match_index}".encode(),decoded_jwt_header))
                 dummy_data.append((f"payload_{match_index}".encode(),decoded_payload))
                 dummy_data.append((f"signature_{match_index}".encode(),decoded_signature))
+                if header_tuple not in self.original_jwt_headers:
+                    self.original_jwt_headers[header_tuple] = f"http_header_{match_index}".encode()
                 match_index = match_index + 1
         match_index = 0
         for query_tuple in flow.request.query.fields:
@@ -97,6 +105,7 @@ class JWTEditor(HeaderEditor):
                 http_match_dict[this_http_header] = b""
             if component_tuple[0] == signature_check:
                 http_match_dict[this_http_header] = http_match_dict[this_http_header] + b"." + depadded_encode(component_tuple[1])
+                http_match_dict[http_header_check] = http_match_dict[this_http_header]
                 http_match_index = http_match_index + 1
                 http_header_check = f"http_header_{http_match_index}".encode()
                 prefix_check = f"prefix_{http_match_index}".encode()
@@ -123,8 +132,13 @@ class JWTEditor(HeaderEditor):
                 query_match_dict[this_query] = query_match_dict[this_query] + b"." + depadded_encode(component_tuple[1])
             if component_tuple[0] == query_jwt_header_check:
                 query_match_dict[this_query] = query_match_dict[this_query] + depadded_encode(component_tuple[1])
-        for http_header in http_match_dict:
-            flow.request.headers[http_header] = http_match_dict[http_header]
+        new_fields_builder = []
+        for req_header in flow.request.headers.fields:
+            if req_header in self.original_jwt_headers:
+                new_fields_builder.append((req_header[0],http_match_dict[self.original_jwt_headers[req_header]]))
+            else:
+                new_fields_builder.append(req_header)
+        flow.request.headers.fields = tuple(new_fields_builder)
         query_update_dict = dict()
         for key in query_match_dict:
             query_update_dict[key.decode('utf-8')] = query_match_dict[key].decode('utf-8')

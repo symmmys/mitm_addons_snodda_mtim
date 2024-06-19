@@ -7,7 +7,6 @@ venvDir = "./.venv";
 buildInputs = [
 # A Python interpreter including the 'venv' module is required to bootstrap the environment. 
 ps.python
-ps.pyperclip
 #ps.scapy
 # This execute some shell code to initialize a venv in $venvDir before
 # dropping into the shell

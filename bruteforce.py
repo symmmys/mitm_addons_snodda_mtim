@@ -4,6 +4,7 @@ import logging
 import subprocess
 from collections.abc import Sequence
 from typing import BinaryIO
+from multiprocessing import Process
 
 from mitmproxy import io
 from mitmproxy import command
@@ -32,6 +33,9 @@ def raw_request(f: flow.Flow) -> bytes:
         raise exceptions.CommandError("Request content missing.")
     return assemble.assemble_request(request)
 
+def run_ffuf(arglist_in):
+    subprocess.run(arglist_in)  
+
 class BruteForce:
     @command.command("bruteforce")
     def bruteforce(
@@ -49,8 +53,10 @@ class BruteForce:
                 this_outfile.close()
                 
                 this_ffuf_outfile = f"request_{flowdex}.ffuf.html"
-                arglist = ["ffuf","-request",this_filename,"-w",wordlist,"-o",this_ffuf_outfile,"-of","html"]
-                subprocess.run(arglist)
+                arglist = ["ffuf","-request",this_filename,"-w",wordlist,"-replay-proxy","http://127.0.0.1:8080","-mc","all","-o",this_ffuf_outfile,"-of","html"]
+                p = Process(target=run_ffuf, args=(arglist,))
+                p.start()
+                p.join()
                 flowdex = flowdex + 1
 
 addons = [BruteForce()]
